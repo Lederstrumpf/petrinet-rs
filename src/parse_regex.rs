@@ -83,26 +83,44 @@ fn extract_petrinet() {
             .map(|line| line.unwrap())
             .collect::<std::vec::Vec<std::string::String>>();
 
+        #[derive(Debug)]
+        struct Extract {
+            line: String,
+            trait_name: Vec<String>,
+            produce: Vec<String>,
+            produce_secondary: Vec<String>,
+            consume: Vec<String>,
+            consume_secondary: Vec<String>,
+        }
+
         let result = petrinet_traits
             .iter()
-            .map(|line| {
-                (
-                    line,
-                    extract_produce(line, regex_trait_name),
-                    extract_produce(line, regex_produce),
-                    extract_produce(line, regex_produce_secondary),
-                    extract_produce(line, regex_consume),
-                    extract_produce(line, regex_consume_secondary),
-                )
+            .map(|line| Extract {
+                line: line.to_string(),
+                trait_name: extract_produce(line, regex_trait_name),
+                produce: extract_produce(line, regex_produce),
+                produce_secondary: extract_produce(line, regex_produce_secondary),
+                consume: extract_produce(line, regex_consume),
+                consume_secondary: extract_produce(line, regex_consume_secondary),
             })
-            .collect::<Vec<(
-                &String,
-                Option<String>,
-                Option<String>,
-                Option<String>,
-                Option<String>,
-                Option<String>,
-            )>>();
-        result.iter().for_each(|line| println!("line: {:?}", line));
+            .collect::<Vec<Extract>>();
+
+        fn build_line(extract: &Extract) -> String {
+            let res = match (extract.produce.len(), extract.consume.len()) {
+                (0, 0) => (extract.produce_secondary.clone(), extract.consume_secondary.clone()),
+                (_, 0) => (extract.produce.clone(), extract.consume_secondary.clone()),
+                (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
+                (_, _) => (extract.produce.clone(), extract.consume.clone()),
+            };
+            println!("{:?} consists of:\n{:?}", extract.trait_name, res);
+            "".to_string()
+        }
+
+        // build_line(&result[0]);
+        result.iter().for_each(|line| {build_line(line);});
+
+        // result
+        //     .iter()
+        //     .for_each(|extraction| println!("{:?}", extraction));
     }
 }
