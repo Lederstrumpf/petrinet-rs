@@ -65,7 +65,7 @@ fn extract_petrinet() {
         #[derive(Debug)]
         struct Extract {
             line: String,
-            trait_name: Vec<String>,
+            trait_name: String,
             produce: Vec<String>,
             produce_secondary: Vec<String>,
             consume: Vec<String>,
@@ -76,7 +76,7 @@ fn extract_petrinet() {
             .iter()
             .map(|line| Extract {
                 line: line.to_string(),
-                trait_name: extract_produce(line, regex_trait_name),
+                trait_name: extract_produce(line, regex_trait_name)[0].clone(),
                 produce: extract_produce(line, regex_produce),
                 produce_secondary: extract_produce(line, regex_produce_secondary),
                 consume: extract_produce(line, regex_consume),
