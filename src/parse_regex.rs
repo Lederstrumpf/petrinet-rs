@@ -17,7 +17,7 @@ fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
     let re = Regex::new(regex_string).unwrap();
     let group = match re.captures(line).unwrap() {
         Some(group) => extract_from_tuple(
-            &group
+            group
                 .get(1)
                 .map_or(None, |m| Some(m.as_str().to_string()))
                 .unwrap(),
@@ -27,13 +27,12 @@ fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
     group
 }
 
-fn replace_empty(value: &String) -> String {
+fn replace_empty(value: String) -> String {
     value.replace("Empty", "()")
 }
 
 #[derive(Debug)]
 struct Extract {
-    line: String,
     trait_name: String,
     produce: Vec<String>,
     produce_secondary: Vec<String>,
@@ -41,30 +40,30 @@ struct Extract {
     consume_secondary: Vec<String>,
 }
 
-fn extract_from_tuple(value: &String) -> Vec<String> {
+fn extract_from_tuple(value: String) -> Vec<String> {
     let re = Regex::new(r"\(.*\)").unwrap();
-    match re.is_match(value) {
+    match re.is_match(&value) {
         Ok(true) => value[1..value.len() - 1]
             .split(", ")
-            .map(|sec| replace_empty(&sec.to_string()))
+            .map(|sec| replace_empty(sec.to_string()))
             .collect::<Vec<String>>(),
-        Ok(false) => vec![replace_empty(&value.to_string())],
-        Err(_) => vec![replace_empty(&value.to_string())],
+        Ok(false) => vec![replace_empty(value)],
+        Err(_) => vec![replace_empty(value)],
     }
 }
 
-fn build_line(extract: &Extract) -> String {
+fn build_line(extract: Extract) -> String {
     let token_tuple = match (extract.produce.len(), extract.consume.len()) {
         (0, 0) => (
-            extract.produce_secondary.clone(),
-            extract.consume_secondary.clone(),
+            &extract.produce_secondary,
+            &extract.consume_secondary,
         ),
-        (_, 0) => (extract.produce.clone(), extract.consume_secondary.clone()),
-        (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
-        (_, _) => (extract.produce.clone(), extract.consume.clone()),
+        (_, 0) => (&extract.produce, &extract.consume_secondary),
+        (0, _) => (&extract.produce_secondary, &extract.consume),
+        (_, _) => (&extract.produce, &extract.consume),
     };
     [
-        extract.trait_name.clone(),
+        extract.trait_name,
         ": ".to_string(),
         token_tuple.0.join(" "),
         " -> ".to_string(),
@@ -100,18 +99,17 @@ pub fn main() {
         let result = petrinet_traits
             .iter()
             .map(|line| Extract {
-                line: line.to_string(),
-                trait_name: extract_produce(line, regex_trait_name)[0].clone(),
-                produce: extract_produce(line, regex_produce),
-                produce_secondary: extract_produce(line, regex_produce_secondary),
-                consume: extract_produce(line, regex_consume),
-                consume_secondary: extract_produce(line, regex_consume_secondary),
+                trait_name: extract_produce(&line, regex_trait_name).swap_remove(0),
+                produce: extract_produce(&line, regex_produce),
+                produce_secondary: extract_produce(&line, regex_produce_secondary),
+                consume: extract_produce(&line, regex_consume),
+                consume_secondary: extract_produce(&line, regex_consume_secondary),
             })
             .collect::<Vec<Extract>>();
 
         // Convert the names into the format used by process.io and print as output
         result
-            .iter()
+            .into_iter()
             .for_each(|line| println!("{}", build_line(line)));
     }
 }
