@@ -14,17 +14,15 @@ where
 }
 
 fn extract_regex(line: &String, regex_string: &str) -> Vec<String> {
-    let re = Regex::new(regex_string).unwrap();
-    let group = match re.captures(line).unwrap() {
+    let re = Regex::new(regex_string).expect("Regex is valid");
+    match re.captures(line).expect("Regex VM should not crash on regex") {
         Some(group) => extract_elements(
             group
                 .get(1)
-                .map_or(None, |m| Some(m.as_str().to_string()))
-                .unwrap(),
+                .map_or("".to_string(), |m| m.as_str().to_string())
         ),
         None => vec![],
-    };
-    group
+    }
 }
 
 fn replace_empty_keyword(value: String) -> String {
@@ -41,7 +39,7 @@ struct Extract {
 }
 
 fn extract_elements(value: String) -> Vec<String> {
-    let re = Regex::new(r"\(.*\)").unwrap();
+    let re = Regex::new(r"\(.*\)").expect("Regex is trivial and valid");
     match re.is_match(&value) {
         Ok(true) => value[1..value.len() - 1]
             .split(", ")
@@ -55,12 +53,12 @@ fn extract_elements(value: String) -> Vec<String> {
 fn build_line(extract: Extract) -> String {
     let token_tuple = match (extract.produce.len(), extract.consume.len()) {
         (0, 0) => (
-            &extract.produce_secondary,
-            &extract.consume_secondary,
+            extract.produce_secondary,
+            extract.consume_secondary,
         ),
-        (_, 0) => (&extract.produce, &extract.consume_secondary),
-        (0, _) => (&extract.produce_secondary, &extract.consume),
-        (_, _) => (&extract.produce, &extract.consume),
+        (_, 0) => (extract.produce, extract.consume_secondary),
+        (0, _) => (extract.produce_secondary, extract.consume),
+        (_, _) => (extract.produce, extract.consume),
     };
     [
         extract.trait_name,
@@ -74,8 +72,8 @@ fn build_line(extract: Extract) -> String {
 }
 
 pub fn main() {
-    let regex_trait_header = Regex::new(r"// petrinet definition").unwrap();
-    let regex_trait = Regex::new(r"trait").unwrap();
+    let regex_trait_header = Regex::new(r"// petrinet definition").expect("Regex is trivial and valid");
+    let regex_trait = Regex::new(r"trait").expect("Regex is trivial and valid");
     let regex_trait_name = r"(?:trait )([^<]+)";
     let regex_produce = r"(?:\bProduce<)([^>]+)";
     let regex_consume = r"(?:\bConsume<)([^>]+)";
@@ -87,12 +85,12 @@ pub fn main() {
         let petrinet_traits = lines
             .skip_while(|line| {
                 !regex_trait_header
-                    .is_match(line.as_ref().unwrap())
-                    .unwrap()
+                    .is_match(line.as_ref().unwrap_or(&"".to_string()))
+                    .expect("Regex VM should not crash on regex")
             })
             .skip(1)
-            .take_while(|line| regex_trait.is_match(line.as_ref().unwrap()).unwrap())
-            .map(|line| line.unwrap())
+            .take_while(|line| regex_trait.is_match(line.as_ref().unwrap_or(&"".to_string())).expect("Regex VM should not crash on regex"))
+            .map(|line| line.unwrap_or("".to_string()))
             .collect::<std::vec::Vec<std::string::String>>();
 
         // Extract the transition & place names from the traits
