@@ -18,31 +18,28 @@ fn extract_petrinet() {
 
     let regex_trait_header = Regex::new(r"// petrinet definition").unwrap();
     let regex_trait = Regex::new(r"trait").unwrap();
-    let regex_produce_and_consume = Regex::new(r"(?=.*\bProduce\b)(?=.*\bConsume\b).*").unwrap();
     let regex_trait_name = r"(?:trait )([^<]+)";
     let regex_produce = r"(?:\bProduce<)([^>]+)";
     let regex_consume = r"(?:\bConsume<)([^>]+)";
-    let regex_consume_secondary = r", ([^:,]+):( Produce<)";
-    let regex_produce_secondary = r", ([^:,]+):( Consume<)";
+    let regex_consume_secondary = r"(?:, )?([^:,<]+):( Produce<)";
+    let regex_produce_secondary = r"(?:, )?([^:,<]+):( Consume<)";
 
-    fn extract_produce(line: &String, regex_string: &str) -> Option<String> {
-        // println!("Line to extract produce from: {}", line);
+    fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
         let re = Regex::new(regex_string).unwrap();
         let group = match re.captures(line).unwrap() {
-            Some(group) => group.get(1).map_or(None, |m| Some(m.as_str().to_string())),
-            None => None,
+            Some(group) => extract_from_tuple(
+                &group
+                    .get(1)
+                    .map_or(None, |m| Some(m.as_str().to_string()))
+                    .unwrap(),
+            ),
+            None => vec![],
         };
-        println!(
-            "Extracted from {:?}\nusing {:?}:\n{:?}\n",
-            line,
-            re,
-            extract_from_tuple(group.as_ref().unwrap_or(&"".to_string()))
-        );
         group
     }
 
     fn extract_from_tuple(value: &String) -> Vec<String> {
-        let re = Regex::new(r"\((.*)\)").unwrap();
+        let re = Regex::new(r"\(.*\)").unwrap();
         match re.is_match(value) {
             Ok(true) => value[1..value.len() - 1]
                 .split(", ")
@@ -51,19 +48,6 @@ fn extract_petrinet() {
             Ok(false) => vec![value.to_string()],
             Err(_) => vec![value.to_string()],
         }
-        // let re = Regex::new(r"(\w+(?:, )*)+").unwrap();
-        // let re = Regex::new(r"\w*").unwrap();
-        // match re.captures(value).unwrap_or(None) {
-        //     Some(group) => group
-        //         .iter()
-        //         // .skip(1)
-        //         .map(|element| match element {
-        //             Some(el) => el.as_str().to_string(),
-        //             None => "".to_string()
-        //         })
-        //         .collect(),
-        //     None => vec![],
-        // }
     }
 
     if let Ok(lines) = read_lines("./src/protocol2.rs") {
@@ -75,11 +59,6 @@ fn extract_petrinet() {
             })
             .skip(1)
             .take_while(|line| regex_trait.is_match(&line.as_ref().unwrap()).unwrap())
-            // .filter(|line| {
-            //     regex_produce_and_consume
-            //         .is_match(&line.as_ref().unwrap())
-            //         .unwrap()
-            // })
             .map(|line| line.unwrap())
             .collect::<std::vec::Vec<std::string::String>>();
 
@@ -116,11 +95,6 @@ fn extract_petrinet() {
             "".to_string()
         }
 
-        // build_line(&result[0]);
         result.iter().for_each(|line| {build_line(line);});
-
-        // result
-        //     .iter()
-        //     .for_each(|extraction| println!("{:?}", extraction));
     }
 }
