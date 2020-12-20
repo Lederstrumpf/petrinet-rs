@@ -55,12 +55,23 @@ fn extract_from_tuple(value: &String) -> Vec<String> {
 
 fn build_line(extract: &Extract) -> String {
     let token_tuple = match (extract.produce.len(), extract.consume.len()) {
-        (0, 0) => (extract.produce_secondary.clone(), extract.consume_secondary.clone()),
+        (0, 0) => (
+            extract.produce_secondary.clone(),
+            extract.consume_secondary.clone(),
+        ),
         (_, 0) => (extract.produce.clone(), extract.consume_secondary.clone()),
         (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
         (_, _) => (extract.produce.clone(), extract.consume.clone()),
     };
-    [extract.trait_name.clone(), ": ".to_string(), token_tuple.0.join(" "), " -> ".to_string(), token_tuple.1.join(" "), ".".to_string()].concat()
+    [
+        extract.trait_name.clone(),
+        ": ".to_string(),
+        token_tuple.0.join(" "),
+        " -> ".to_string(),
+        token_tuple.1.join(" "),
+        ".".to_string(),
+    ]
+    .concat()
 }
 
 pub fn main() {
@@ -71,7 +82,6 @@ pub fn main() {
     let regex_consume = r"(?:\bConsume<)([^>]+)";
     let regex_consume_secondary = r"(?:, )?([^:,<]+):( Produce<)";
     let regex_produce_secondary = r"(?:, )?([^:,<]+):( Consume<)";
-
 
     if let Ok(lines) = read_lines("./src/protocol2.rs") {
         // Extract the trait definitions from ./src/protocol2.rs
@@ -100,6 +110,8 @@ pub fn main() {
             .collect::<Vec<Extract>>();
 
         // Convert the names into the format used by process.io and print as output
-        result.iter().for_each(|line| {println!("{}", build_line(line))});
+        result
+            .iter()
+            .for_each(|line| println!("{}", build_line(line)));
     }
 }
