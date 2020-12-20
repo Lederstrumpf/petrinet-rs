@@ -87,11 +87,11 @@ pub fn main() {
         let petrinet_traits = lines
             .skip_while(|line| {
                 !regex_trait_header
-                    .is_match(&line.as_ref().unwrap())
+                    .is_match(line.as_ref().unwrap())
                     .unwrap()
             })
             .skip(1)
-            .take_while(|line| regex_trait.is_match(&line.as_ref().unwrap()).unwrap())
+            .take_while(|line| regex_trait.is_match(line.as_ref().unwrap()).unwrap())
             .map(|line| line.unwrap())
             .collect::<std::vec::Vec<std::string::String>>();
 
@@ -99,11 +99,11 @@ pub fn main() {
         let names = petrinet_traits
             .iter()
             .map(|line| Extract {
-                trait_name: extract_regex(&line, regex_trait_name).swap_remove(0),
-                produce: extract_regex(&line, regex_produce),
-                produce_secondary: extract_regex(&line, regex_produce_secondary),
-                consume: extract_regex(&line, regex_consume),
-                consume_secondary: extract_regex(&line, regex_consume_secondary),
+                trait_name: extract_regex(line, regex_trait_name).swap_remove(0),
+                produce: extract_regex(line, regex_produce),
+                produce_secondary: extract_regex(line, regex_produce_secondary),
+                consume: extract_regex(line, regex_consume),
+                consume_secondary: extract_regex(line, regex_consume_secondary),
             })
             .collect::<Vec<Extract>>();
 
