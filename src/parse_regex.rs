@@ -91,10 +91,9 @@ fn extract_petrinet() {
                 (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
                 (_, _) => (extract.produce.clone(), extract.consume.clone()),
             };
-            println!("{:?} consists of:\n{:?}", extract.trait_name, res);
-            "".to_string()
+            [extract.trait_name.clone(), ": ".to_string(), res.0.join(" "), " -> ".to_string(), res.1.join(" "), ".".to_string()].concat()
         }
 
-        result.iter().for_each(|line| {build_line(line);});
+        result.iter().for_each(|line| {println!("{}", build_line(line))});
     }
 }
