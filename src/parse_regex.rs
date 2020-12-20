@@ -13,10 +13,10 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
-fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
+fn extract_regex(line: &String, regex_string: &str) -> Vec<String> {
     let re = Regex::new(regex_string).unwrap();
     let group = match re.captures(line).unwrap() {
-        Some(group) => extract_from_tuple(
+        Some(group) => extract_elements(
             group
                 .get(1)
                 .map_or(None, |m| Some(m.as_str().to_string()))
@@ -27,7 +27,7 @@ fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
     group
 }
 
-fn replace_empty(value: String) -> String {
+fn replace_empty_keyword(value: String) -> String {
     value.replace("Empty", "()")
 }
 
@@ -40,15 +40,15 @@ struct Extract {
     consume_secondary: Vec<String>,
 }
 
-fn extract_from_tuple(value: String) -> Vec<String> {
+fn extract_elements(value: String) -> Vec<String> {
     let re = Regex::new(r"\(.*\)").unwrap();
     match re.is_match(&value) {
         Ok(true) => value[1..value.len() - 1]
             .split(", ")
-            .map(|sec| replace_empty(sec.to_string()))
+            .map(|sec| replace_empty_keyword(sec.to_string()))
             .collect::<Vec<String>>(),
-        Ok(false) => vec![replace_empty(value)],
-        Err(_) => vec![replace_empty(value)],
+        Ok(false) => vec![replace_empty_keyword(value)],
+        Err(_) => vec![replace_empty_keyword(value)],
     }
 }
 
@@ -96,19 +96,19 @@ pub fn main() {
             .collect::<std::vec::Vec<std::string::String>>();
 
         // Extract the transition & place names from the traits
-        let result = petrinet_traits
+        let names = petrinet_traits
             .iter()
             .map(|line| Extract {
-                trait_name: extract_produce(&line, regex_trait_name).swap_remove(0),
-                produce: extract_produce(&line, regex_produce),
-                produce_secondary: extract_produce(&line, regex_produce_secondary),
-                consume: extract_produce(&line, regex_consume),
-                consume_secondary: extract_produce(&line, regex_consume_secondary),
+                trait_name: extract_regex(&line, regex_trait_name).swap_remove(0),
+                produce: extract_regex(&line, regex_produce),
+                produce_secondary: extract_regex(&line, regex_produce_secondary),
+                consume: extract_regex(&line, regex_consume),
+                consume_secondary: extract_regex(&line, regex_consume_secondary),
             })
             .collect::<Vec<Extract>>();
 
         // Convert the names into the format used by process.io and print as output
-        result
+        names
             .into_iter()
             .for_each(|line| println!("{}", build_line(line)));
     }
