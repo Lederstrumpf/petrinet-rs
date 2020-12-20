@@ -74,6 +74,7 @@ pub fn main() {
 
 
     if let Ok(lines) = read_lines("./src/protocol2.rs") {
+        // Extract the trait definitions from ./src/protocol2.rs
         let petrinet_traits = lines
             .skip_while(|line| {
                 !regex_trait_header
@@ -85,6 +86,7 @@ pub fn main() {
             .map(|line| line.unwrap())
             .collect::<std::vec::Vec<std::string::String>>();
 
+        // Extract the transition & place names from the traits
         let result = petrinet_traits
             .iter()
             .map(|line| Extract {
@@ -97,6 +99,7 @@ pub fn main() {
             })
             .collect::<Vec<Extract>>();
 
+        // Convert the names into the format used by process.io and print as output
         result.iter().for_each(|line| {println!("{}", build_line(line))});
     }
 }
