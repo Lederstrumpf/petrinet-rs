@@ -38,15 +38,19 @@ fn extract_petrinet() {
         group
     }
 
+    fn replace_empty(value: &String) -> String {
+        value.replace("Empty", "()")
+    }
+
     fn extract_from_tuple(value: &String) -> Vec<String> {
         let re = Regex::new(r"\(.*\)").unwrap();
         match re.is_match(value) {
             Ok(true) => value[1..value.len() - 1]
                 .split(", ")
-                .map(|sec| sec.to_string())
+                .map(|sec| replace_empty(&sec.to_string()))
                 .collect::<Vec<String>>(),
-            Ok(false) => vec![value.to_string()],
-            Err(_) => vec![value.to_string()],
+            Ok(false) => vec![replace_empty(&value.to_string())],
+            Err(_) => vec![replace_empty(&value.to_string())],
         }
     }
 
