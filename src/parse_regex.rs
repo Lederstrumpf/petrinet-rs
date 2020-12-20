@@ -1,21 +1,69 @@
-#[test]
-fn extract_petrinet() {
-    // use regex::Regex;
-    use fancy_regex::Regex;
-    use std::fs::File;
-    use std::io::{self, BufRead};
-    use std::path::Path;
+use fancy_regex::Regex;
+use std::fs::File;
+use std::io::{self, BufRead};
+use std::path::Path;
 
-    // The output is wrapped in a Result to allow matching on errors
-    // Returns an Iterator to the Reader of the lines of the file.
-    fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-    where
-        P: AsRef<Path>,
-    {
-        let file = File::open(filename)?;
-        Ok(io::BufReader::new(file).lines())
+// The output is wrapped in a Result to allow matching on errors
+// Returns an Iterator to the Reader of the lines of the file.
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where
+    P: AsRef<Path>,
+{
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
+    let re = Regex::new(regex_string).unwrap();
+    let group = match re.captures(line).unwrap() {
+        Some(group) => extract_from_tuple(
+            &group
+                .get(1)
+                .map_or(None, |m| Some(m.as_str().to_string()))
+                .unwrap(),
+        ),
+        None => vec![],
+    };
+    group
+}
+
+fn replace_empty(value: &String) -> String {
+    value.replace("Empty", "()")
+}
+
+#[derive(Debug)]
+struct Extract {
+    line: String,
+    trait_name: String,
+    produce: Vec<String>,
+    produce_secondary: Vec<String>,
+    consume: Vec<String>,
+    consume_secondary: Vec<String>,
+}
+
+fn extract_from_tuple(value: &String) -> Vec<String> {
+    let re = Regex::new(r"\(.*\)").unwrap();
+    match re.is_match(value) {
+        Ok(true) => value[1..value.len() - 1]
+            .split(", ")
+            .map(|sec| replace_empty(&sec.to_string()))
+            .collect::<Vec<String>>(),
+        Ok(false) => vec![replace_empty(&value.to_string())],
+        Err(_) => vec![replace_empty(&value.to_string())],
     }
+}
 
+fn build_line(extract: &Extract) -> String {
+    let token_tuple = match (extract.produce.len(), extract.consume.len()) {
+        (0, 0) => (extract.produce_secondary.clone(), extract.consume_secondary.clone()),
+        (_, 0) => (extract.produce.clone(), extract.consume_secondary.clone()),
+        (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
+        (_, _) => (extract.produce.clone(), extract.consume.clone()),
+    };
+    [extract.trait_name.clone(), ": ".to_string(), token_tuple.0.join(" "), " -> ".to_string(), token_tuple.1.join(" "), ".".to_string()].concat()
+}
+
+pub fn main() {
     let regex_trait_header = Regex::new(r"// petrinet definition").unwrap();
     let regex_trait = Regex::new(r"trait").unwrap();
     let regex_trait_name = r"(?:trait )([^<]+)";
@@ -24,35 +72,6 @@ fn extract_petrinet() {
     let regex_consume_secondary = r"(?:, )?([^:,<]+):( Produce<)";
     let regex_produce_secondary = r"(?:, )?([^:,<]+):( Consume<)";
 
-    fn extract_produce(line: &String, regex_string: &str) -> Vec<String> {
-        let re = Regex::new(regex_string).unwrap();
-        let group = match re.captures(line).unwrap() {
-            Some(group) => extract_from_tuple(
-                &group
-                    .get(1)
-                    .map_or(None, |m| Some(m.as_str().to_string()))
-                    .unwrap(),
-            ),
-            None => vec![],
-        };
-        group
-    }
-
-    fn replace_empty(value: &String) -> String {
-        value.replace("Empty", "()")
-    }
-
-    fn extract_from_tuple(value: &String) -> Vec<String> {
-        let re = Regex::new(r"\(.*\)").unwrap();
-        match re.is_match(value) {
-            Ok(true) => value[1..value.len() - 1]
-                .split(", ")
-                .map(|sec| replace_empty(&sec.to_string()))
-                .collect::<Vec<String>>(),
-            Ok(false) => vec![replace_empty(&value.to_string())],
-            Err(_) => vec![replace_empty(&value.to_string())],
-        }
-    }
 
     if let Ok(lines) = read_lines("./src/protocol2.rs") {
         let petrinet_traits = lines
@@ -66,16 +85,6 @@ fn extract_petrinet() {
             .map(|line| line.unwrap())
             .collect::<std::vec::Vec<std::string::String>>();
 
-        #[derive(Debug)]
-        struct Extract {
-            line: String,
-            trait_name: String,
-            produce: Vec<String>,
-            produce_secondary: Vec<String>,
-            consume: Vec<String>,
-            consume_secondary: Vec<String>,
-        }
-
         let result = petrinet_traits
             .iter()
             .map(|line| Extract {
@@ -87,16 +96,6 @@ fn extract_petrinet() {
                 consume_secondary: extract_produce(line, regex_consume_secondary),
             })
             .collect::<Vec<Extract>>();
-
-        fn build_line(extract: &Extract) -> String {
-            let res = match (extract.produce.len(), extract.consume.len()) {
-                (0, 0) => (extract.produce_secondary.clone(), extract.consume_secondary.clone()),
-                (_, 0) => (extract.produce.clone(), extract.consume_secondary.clone()),
-                (0, _) => (extract.produce_secondary.clone(), extract.consume.clone()),
-                (_, _) => (extract.produce.clone(), extract.consume.clone()),
-            };
-            [extract.trait_name.clone(), ": ".to_string(), res.0.join(" "), " -> ".to_string(), res.1.join(" "), ".".to_string()].concat()
-        }
 
         result.iter().for_each(|line| {println!("{}", build_line(line))});
     }

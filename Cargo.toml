@@ -9,3 +9,7 @@ serde = ""
 serde_json = ""
 serde_derive = ""
 fancy-regex = "0.4.1"
+
+[[bin]]
+name = "convert-to-process-io"
+path = "src/parse_regex.rs"
